@@ -29,8 +29,6 @@ def get_env_variable(var_name):
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 SITE_URL = 'http://127.0.0.1:8000'
