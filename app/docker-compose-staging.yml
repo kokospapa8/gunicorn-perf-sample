@@ -21,6 +21,7 @@ services:
       - DJANGO_SETTINGS_MODULE=settings.staging
       - DB_PASSWORD
       - DB_HOST
+      - WORKER_COUNT=1
 
   nginx:
     image: nginx
