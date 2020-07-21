@@ -6,7 +6,7 @@ from locust import User, TaskSet, between, task, HttpUser
 class ReadPosts(TaskSet):
     @task(1)
     def read_posts(self):
-        response = self.client.get("/api/v1/posts/", name="list posts")
+        response = self.client.get("api/v1/posts/", name="list posts")
         print("Response status code:", response.status_code)
         print("Response content:", response.text)
 
