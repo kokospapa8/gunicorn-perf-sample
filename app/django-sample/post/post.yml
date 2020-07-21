@@ -1,0 +1,99 @@
+swagger: "2.0"
+info:
+  description: "Sample post api server"
+  version: "0.1"
+  title: "Sample Post api "
+  contact:
+    email: "kokos.papa8@gmail.com"
+basePath: "/api/v1"
+
+paths:
+  /posts/:
+    get:
+      tags:
+        - "Post"
+      summary: "get post list"
+      description: |
+        PERMISSION - AllowAny
+      operationId: "post_list_get"
+      responses:
+        200:
+          description: "post_list"
+          schema:
+            type: "object"
+            properties:
+              count:
+                type: integer
+                example: 0
+              next:
+                type: string
+                format: url
+              previous:
+                type: string
+                format: url
+              results:
+                type: array
+                items:
+                  $ref: '#/definitions/Post'
+    post:
+      tags:
+        - "Post"
+      summary: "create a post"
+      description: |
+        PERMISSION - AllowAny
+      operationId: "post_create"
+      parameters:
+        - in: "body"
+          name: "body"
+          schema:
+            $ref: '#/definitions/PostCreateParam'
+      responses:
+        201:
+          description: "comment creation successful"
+          schema:
+            $ref: '#/definitions/Post'
+        400:
+          description: requires params
+
+definitions:
+  Post:
+    type: "object"
+    description: post item
+    properties:
+      id:
+        type: integer
+      title:
+        type: string
+        example: "title"
+      body:
+        type: string
+      timestamp:
+        type: string
+        format: timestamp
+      is_show:
+        type: boolean
+      link:
+        type: string
+        format: url
+      user:
+        type: integer
+        description: user id
+  PostCreateParam:
+    type: "object"
+    description: Post create params
+    required:
+      - title
+      - body
+    properties:
+      title:
+        type: string
+      body:
+        type: string
+      is_show:
+        type: boolean
+      link:
+        type: string
+        format: url
+      user:
+        type: integer
+        description: user id, this nullable

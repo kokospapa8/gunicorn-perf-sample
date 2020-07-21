@@ -1,0 +1,742 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Parameters" : {
+    "DBUsername" : {
+      "Description" : "Username for MySQL database access",
+      "Default": "admin",
+      "Type" : "String",
+      "MinLength" : "1",
+      "MaxLength" : "16",
+      "AllowedPattern" : "[a-zA-Z][a-zA-Z0-9]*",
+      "ConstraintDescription" : "must begin with a letter and contain only alphanumeric characters."
+    },
+    "DBPassword" : {
+      "NoEcho" : "true",
+      "Description" : "Password MySQL database access. Default- password",
+      "Default": "password",
+      "Type" : "String",
+      "MinLength" : "8",
+
+      "MaxLength" : "41",
+      "AllowedPattern" : "[a-zA-Z0-9]*",
+      "ConstraintDescription" : "must contain only alphanumeric characters."
+    },
+    "LatestUbuntuAmiId": {
+        "Type": "String",
+        "Default": "ami-005e54dee72cc1d00",
+        "Description" : "Latest ubuntu image. ami id differs by region"
+    }
+  },
+  "Resources": {
+    "IAMRole": {
+        "Type": "AWS::IAM::Role",
+        "Properties": {
+            "AssumeRolePolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "sts:AssumeRole"
+                        ],
+                        "Principal": {
+                            "Service": [
+                                "ec2.amazonaws.com"
+                            ]
+                        }
+                    }
+                ]
+            },
+            "ManagedPolicyArns": [
+                "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+            ]
+        }
+    },
+    "InstanceProfile": {
+        "Type": "AWS::IAM::InstanceProfile",
+        "Properties": {
+            "Path": "/",
+            "Roles": [
+                {
+                    "Ref": "IAMRole"
+                }
+            ]
+        },
+        "DependsOn": "IAMRole"
+    },
+    "VpcEcsSample": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": "172.10.0.0/16",
+        "InstanceTenancy": "default",
+        "EnableDnsSupport": "true",
+        "EnableDnsHostnames": "true",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "django-sample"
+          }
+        ]
+      }
+    },
+    "EcsSamplePrivate1": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "CidrBlock": "172.10.11.0/24",
+        "AvailabilityZone": "us-west-2a",
+        "VpcId": {
+          "Ref": "VpcEcsSample"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "django-sample-private 1"
+          }
+        ]
+      },
+      "DependsOn": "VpcEcsSample"
+
+    },
+    "EcsSamplePublic2": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "CidrBlock": "172.10.2.0/24",
+        "AvailabilityZone": "us-west-2b",
+        "VpcId": {
+          "Ref": "VpcEcsSample"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "django-sample-public 2"
+          }
+        ]
+      },
+      "DependsOn": "VpcEcsSample"
+    },
+    "EcsSamplePrivate2": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "CidrBlock": "172.10.12.0/24",
+        "AvailabilityZone": "us-west-2b",
+        "VpcId": {
+          "Ref": "VpcEcsSample"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "django-sample-private 2"
+          }
+        ]
+      },
+      "DependsOn": "VpcEcsSample"
+
+    },
+    "EcsSamplePublic1": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "CidrBlock": "172.10.1.0/24",
+        "AvailabilityZone": "us-west-2a",
+        "VpcId": {
+          "Ref": "VpcEcsSample"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "django-sample-public 1"
+          }
+        ]
+      },
+      "DependsOn": "VpcEcsSample"
+    },
+    "IgwEcsSample": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "django-sample IGW"
+          }
+        ]
+      },
+      "DependsOn": "VpcEcsSample"
+    },
+    "DoptEcsSample": {
+      "Type": "AWS::EC2::DHCPOptions",
+      "Properties": {
+        "DomainName": "us-west-2.compute.internal",
+        "DomainNameServers": [
+          "AmazonProvidedDNS"
+        ]
+      },
+      "DependsOn": "VpcEcsSample"
+    },
+    "AclEcsSample": {
+      "Type": "AWS::EC2::NetworkAcl",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VpcEcsSample"
+        }
+      },
+      "DependsOn": "VpcEcsSample"
+    },
+    "RtbPublic": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VpcEcsSample"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "django-sample public routing"
+          }
+        ]
+      },
+      "DependsOn": "VpcEcsSample"
+    },
+    "RtbPrivate": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VpcEcsSample"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "django-sample private routing"
+          }
+        ]
+      },
+      "DependsOn": "VpcEcsSample"
+    },
+    "EipNat": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "Domain": "vpc"
+      }
+    },
+    "NATGateway": {
+        "Type": "AWS::EC2::NatGateway",
+        "Properties": {
+            "AllocationId": {
+                "Fn::GetAtt": [
+                    "EipNat",
+                    "AllocationId"
+                ]
+            },
+            "SubnetId": {
+                "Ref": "EcsSamplePublic1"
+            }
+        },
+        "DependsOn": [
+            "EcsSamplePublic1",
+            "EipNat",
+            "IgwEcsSample",
+            "GatewayAttachment"
+        ]
+    },
+
+    "RDSCluster" : {
+      "Type": "AWS::RDS::DBCluster",
+      "Properties" : {
+          "MasterUsername" : {
+              "Ref": "DBUsername"
+          },
+          "MasterUserPassword" : {
+              "Ref": "DBPassword"
+          },
+          "DBClusterIdentifier" : "django-sample",
+          "Engine" : "aurora",
+          "EngineVersion" : "5.6.10a",
+          "EngineMode" : "serverless",
+          "ScalingConfiguration" : {
+              "AutoPause" : true,
+              "MinCapacity" : 4,
+              "MaxCapacity" : 8,
+              "SecondsUntilAutoPause" : 1000
+          }
+      }
+    },
+
+    "InstanceAppApi": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "DisableApiTermination": "false",
+        "InstanceInitiatedShutdownBehavior": "stop",
+        "IamInstanceProfile": {
+          "Ref": "InstanceProfile"
+        },
+        "ImageId": {
+          "Ref": "LatestUbuntuAmiId"
+        },
+        "InstanceType": "t2.micro",
+        "Monitoring": "false",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "django-sample-api"
+          }
+        ],
+        "NetworkInterfaces": [
+          {
+            "DeleteOnTermination": "true",
+            "Description": "Primary network interface",
+            "DeviceIndex": 0,
+            "SubnetId": {
+              "Ref": "EcsSamplePublic1"
+            },
+            "PrivateIpAddresses": [
+              {
+                "PrivateIpAddress": "172.10.1.197",
+                "Primary": "true"
+              }
+            ],
+            "GroupSet": [
+              {
+                "Ref": "sgecssampleec2"
+              }
+            ],
+            "AssociatePublicIpAddress": "true"
+          }
+        ]
+      }
+    },
+    "dbsubnetecssamplesubnetgroup": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": "django-sample-subnet-group",
+        "SubnetIds": [
+          {
+            "Ref": "EcsSamplePrivate2"
+          },
+          {
+            "Ref": "EcsSamplePrivate1"
+          }
+        ]
+      }
+    },
+    "sgecssampleec2": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "ec2",
+        "VpcId": {
+          "Ref": "VpcEcsSample"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "django-sample-ec2"
+          }
+        ]
+      }
+    },
+    "sgecssamplemysql": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "mysql",
+        "VpcId": {
+          "Ref": "VpcEcsSample"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "django-sample-mysql\t"
+          }
+        ]
+      }
+    },
+    "sgecssampleloadbalancer": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "lb",
+        "VpcId": {
+          "Ref": "VpcEcsSample"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "django-sample-loadbalancer"
+          }
+        ]
+      }
+    },
+    "sgdefault": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "default VPC security group",
+        "VpcId": {
+          "Ref": "VpcEcsSample"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "default vpc sg"
+          }
+        ]
+      }
+    },
+    "dbsgdefault": {
+      "Type": "AWS::RDS::DBSecurityGroup",
+      "Properties": {
+        "GroupDescription": "default"
+      }
+    },
+    "acl3": {
+      "Type": "AWS::EC2::NetworkAclEntry",
+      "Properties": {
+        "CidrBlock": "0.0.0.0/0",
+        "Egress": "true",
+        "Protocol": "-1",
+        "RuleAction": "allow",
+        "RuleNumber": "100",
+        "NetworkAclId": {
+          "Ref": "AclEcsSample"
+        }
+      }
+    },
+    "acl4": {
+      "Type": "AWS::EC2::NetworkAclEntry",
+      "Properties": {
+        "CidrBlock": "0.0.0.0/0",
+        "Protocol": "-1",
+        "RuleAction": "allow",
+        "RuleNumber": "100",
+        "NetworkAclId": {
+          "Ref": "AclEcsSample"
+        }
+      }
+    },
+    "subnetacl5": {
+      "Type": "AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties": {
+        "NetworkAclId": {
+          "Ref": "AclEcsSample"
+        },
+        "SubnetId": {
+          "Ref": "EcsSamplePublic1"
+        }
+      }
+    },
+    "subnetacl6": {
+      "Type": "AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties": {
+        "NetworkAclId": {
+          "Ref": "AclEcsSample"
+        },
+        "SubnetId": {
+          "Ref": "EcsSamplePrivate2"
+        }
+      }
+    },
+    "subnetacl7": {
+      "Type": "AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties": {
+        "NetworkAclId": {
+          "Ref": "AclEcsSample"
+        },
+        "SubnetId": {
+          "Ref": "EcsSamplePublic2"
+        }
+      }
+    },
+    "subnetacl8": {
+      "Type": "AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties": {
+        "NetworkAclId": {
+          "Ref": "AclEcsSample"
+        },
+        "SubnetId": {
+          "Ref": "EcsSamplePrivate1"
+        }
+      }
+    },
+    "GatewayAttachment": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VpcEcsSample"
+        },
+        "InternetGatewayId": {
+          "Ref": "IgwEcsSample"
+        }
+      }
+    },
+    "subnetroute5": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "RtbPrivate"
+        },
+        "SubnetId": {
+          "Ref": "EcsSamplePrivate1"
+        }
+      }
+    },
+    "subnetroute6": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "RtbPrivate"
+        },
+        "SubnetId": {
+          "Ref": "EcsSamplePrivate2"
+        }
+      }
+    },
+    "route3": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "RouteTableId": {
+          "Ref": "RtbPublic"
+        },
+        "GatewayId": {
+          "Ref": "IgwEcsSample"
+        }
+      },
+      "DependsOn": "GatewayAttachment"
+    },
+    "route4": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "RouteTableId": {
+          "Ref": "RtbPrivate"
+        },
+        "NatGatewayId": {
+          "Ref": "NATGateway"
+        }
+      },
+      "DependsOn": ["NATGateway","GatewayAttachment"]
+    },
+    "dchpassoc2": {
+      "Type": "AWS::EC2::VPCDHCPOptionsAssociation",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VpcEcsSample"
+        },
+        "DhcpOptionsId": {
+          "Ref": "DoptEcsSample"
+        }
+      }
+    },
+    "ingress11": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgecssampleec2"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "80",
+        "ToPort": "80",
+        "SourceSecurityGroupId": {
+          "Ref": "sgecssampleloadbalancer"
+        },
+        "SourceSecurityGroupOwnerId": "982947632035"
+      }
+    },
+    "ingress12": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgecssampleec2"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "80",
+        "ToPort": "80",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "ingress13": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgecssampleec2"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "22",
+        "ToPort": "22",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "ingress14": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgecssampleec2"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "6379",
+        "ToPort": "6379",
+        "SourceSecurityGroupId": {
+          "Ref": "sgecssampleredis"
+        },
+        "SourceSecurityGroupOwnerId": "982947632035"
+      }
+    },
+    "ingress15": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgecssampleec2"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "3306",
+        "ToPort": "3306",
+        "SourceSecurityGroupId": {
+          "Ref": "sgecssamplemysql"
+        },
+        "SourceSecurityGroupOwnerId": "982947632035"
+      }
+    },
+    "ingress16": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgecssampleredis"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "6379",
+        "ToPort": "6379",
+        "SourceSecurityGroupId": {
+          "Ref": "sgecssampleec2"
+        },
+        "SourceSecurityGroupOwnerId": "982947632035"
+      }
+    },
+    "ingress17": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgecssamplemysql"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "3306",
+        "ToPort": "3306",
+        "SourceSecurityGroupId": {
+          "Ref": "sgecssampleec2"
+        },
+        "SourceSecurityGroupOwnerId": "982947632035"
+      }
+    },
+    "ingress18": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgecssampleloadbalancer"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "80",
+        "ToPort": "80",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "ingress19": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgecssampleloadbalancer"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "443",
+        "ToPort": "443",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "ingress20": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgdefault"
+        },
+        "IpProtocol": "-1",
+        "SourceSecurityGroupId": {
+          "Ref": "sgdefault"
+        },
+        "SourceSecurityGroupOwnerId": "982947632035"
+      }
+    },
+    "egress6": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgecssampleec2"
+        },
+        "IpProtocol": "-1",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "egress7": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgecssampleredis"
+        },
+        "IpProtocol": "-1",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "egress8": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgecssamplemysql"
+        },
+        "IpProtocol": "-1",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "egress9": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgecssampleloadbalancer"
+        },
+        "IpProtocol": "-1",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "egress10": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgdefault"
+        },
+        "IpProtocol": "-1",
+        "CidrIp": "0.0.0.0/0"
+      }
+    }
+  },
+  "Description": "django-sample-cf",
+  "Outputs": {
+    "VpcEcsSampleId": {
+      "Value": {
+        "Ref": "VpcEcsSample"
+      }
+    },
+    "IgwEcsSampleId": {
+      "Value": {
+        "Ref": "IgwEcsSample"
+      }
+    },
+    "NatIP": {
+      "Value": {
+        "Ref": "EipNat"
+      }
+    },
+    "InstanceAppApiId": {
+      "Value": {
+        "Ref": "InstanceAppApi"
+      }
+    },
+    "InstanceAppApiIP": {
+      "Value": {
+        "Fn::GetAtt": [
+          "InstanceAppApi",
+          "PublicIp"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,31 @@
+# File structure version
+version: '3'
+
+services:
+  # Our django application
+  # Build from remote dockerfile
+  # Connect local app folder with image folder, so changes will be pushed to image instantly
+  # Open port 8000
+  app:
+    build:
+      context: .
+      dockerfile: config/app/Dockerfile
+    hostname: app
+    volumes:
+      - ./django-sample:/django-sample
+    expose:
+      - "8000"
+    environment:
+      - SECRET_KEY="verylongkey"
+      - ENV=dev
+      - DJANGO_SETTINGS_MODULE=settings.local
+
+  nginx:
+    image: nginx
+    hostname: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./config/nginx/app_local.conf:/etc/nginx/conf.d/app_local.conf
+    depends_on:
+      - app
