@@ -79,6 +79,23 @@
         ]
       }
     },
+    "EcsSamplePublic1": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "CidrBlock": "172.10.1.0/24",
+        "AvailabilityZone": "us-west-2a",
+        "VpcId": {
+          "Ref": "VpcEcsSample"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "django-sample-public 1"
+          }
+        ]
+      },
+      "DependsOn": "VpcEcsSample"
+    },
     "EcsSamplePrivate1": {
       "Type": "AWS::EC2::Subnet",
       "Properties": {
@@ -131,23 +148,6 @@
       },
       "DependsOn": "VpcEcsSample"
 
-    },
-    "EcsSamplePublic1": {
-      "Type": "AWS::EC2::Subnet",
-      "Properties": {
-        "CidrBlock": "172.10.1.0/24",
-        "AvailabilityZone": "us-west-2a",
-        "VpcId": {
-          "Ref": "VpcEcsSample"
-        },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "django-sample-public 1"
-          }
-        ]
-      },
-      "DependsOn": "VpcEcsSample"
     },
     "IgwEcsSample": {
       "Type": "AWS::EC2::InternetGateway",
@@ -210,33 +210,6 @@
       },
       "DependsOn": "VpcEcsSample"
     },
-    "EipNat": {
-      "Type": "AWS::EC2::EIP",
-      "Properties": {
-        "Domain": "vpc"
-      }
-    },
-    "NATGateway": {
-        "Type": "AWS::EC2::NatGateway",
-        "Properties": {
-            "AllocationId": {
-                "Fn::GetAtt": [
-                    "EipNat",
-                    "AllocationId"
-                ]
-            },
-            "SubnetId": {
-                "Ref": "EcsSamplePublic1"
-            }
-        },
-        "DependsOn": [
-            "EcsSamplePublic1",
-            "EipNat",
-            "IgwEcsSample",
-            "GatewayAttachment"
-        ]
-    },
-
     "RDSCluster" : {
       "Type": "AWS::RDS::DBCluster",
       "Properties" : {
@@ -258,7 +231,6 @@
           }
       }
     },
-
     "InstanceAppApi": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
@@ -289,6 +261,49 @@
             "PrivateIpAddresses": [
               {
                 "PrivateIpAddress": "172.10.1.197",
+                "Primary": "true"
+              }
+            ],
+            "GroupSet": [
+              {
+                "Ref": "sgecssampleec2"
+              }
+            ],
+            "AssociatePublicIpAddress": "true"
+          }
+        ]
+      }
+    },
+    "InstanceLocust": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "DisableApiTermination": "false",
+        "InstanceInitiatedShutdownBehavior": "stop",
+        "IamInstanceProfile": {
+          "Ref": "InstanceProfile"
+        },
+        "ImageId": {
+          "Ref": "LatestUbuntuAmiId"
+        },
+        "InstanceType": "t2.micro",
+        "Monitoring": "false",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "django-sample-locust"
+          }
+        ],
+        "NetworkInterfaces": [
+          {
+            "DeleteOnTermination": "true",
+            "Description": "Primary network interface",
+            "DeviceIndex": 0,
+            "SubnetId": {
+              "Ref": "EcsSamplePublic1"
+            },
+            "PrivateIpAddresses": [
+              {
+                "PrivateIpAddress": "172.10.1.198",
                 "Primary": "true"
               }
             ],
@@ -342,21 +357,6 @@
           {
             "Key": "Name",
             "Value": "django-sample-mysql\t"
-          }
-        ]
-      }
-    },
-    "sgecssampleloadbalancer": {
-      "Type": "AWS::EC2::SecurityGroup",
-      "Properties": {
-        "GroupDescription": "lb",
-        "VpcId": {
-          "Ref": "VpcEcsSample"
-        },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "django-sample-loadbalancer"
           }
         ]
       }
@@ -497,19 +497,6 @@
       },
       "DependsOn": "GatewayAttachment"
     },
-    "route4": {
-      "Type": "AWS::EC2::Route",
-      "Properties": {
-        "DestinationCidrBlock": "0.0.0.0/0",
-        "RouteTableId": {
-          "Ref": "RtbPrivate"
-        },
-        "NatGatewayId": {
-          "Ref": "NATGateway"
-        }
-      },
-      "DependsOn": ["NATGateway","GatewayAttachment"]
-    },
     "dchpassoc2": {
       "Type": "AWS::EC2::VPCDHCPOptionsAssociation",
       "Properties": {
@@ -519,21 +506,6 @@
         "DhcpOptionsId": {
           "Ref": "DoptEcsSample"
         }
-      }
-    },
-    "ingress11": {
-      "Type": "AWS::EC2::SecurityGroupIngress",
-      "Properties": {
-        "GroupId": {
-          "Ref": "sgecssampleec2"
-        },
-        "IpProtocol": "tcp",
-        "FromPort": "80",
-        "ToPort": "80",
-        "SourceSecurityGroupId": {
-          "Ref": "sgecssampleloadbalancer"
-        },
-        "SourceSecurityGroupOwnerId": "982947632035"
       }
     },
     "ingress12": {
@@ -567,12 +539,9 @@
           "Ref": "sgecssampleec2"
         },
         "IpProtocol": "tcp",
-        "FromPort": "6379",
-        "ToPort": "6379",
-        "SourceSecurityGroupId": {
-          "Ref": "sgecssampleredis"
-        },
-        "SourceSecurityGroupOwnerId": "982947632035"
+        "FromPort": "8089",
+        "ToPort": "8089",
+        "CidrIp": "0.0.0.0/0"
       }
     },
     "ingress15": {
@@ -590,21 +559,6 @@
         "SourceSecurityGroupOwnerId": "982947632035"
       }
     },
-    "ingress16": {
-      "Type": "AWS::EC2::SecurityGroupIngress",
-      "Properties": {
-        "GroupId": {
-          "Ref": "sgecssampleredis"
-        },
-        "IpProtocol": "tcp",
-        "FromPort": "6379",
-        "ToPort": "6379",
-        "SourceSecurityGroupId": {
-          "Ref": "sgecssampleec2"
-        },
-        "SourceSecurityGroupOwnerId": "982947632035"
-      }
-    },
     "ingress17": {
       "Type": "AWS::EC2::SecurityGroupIngress",
       "Properties": {
@@ -618,30 +572,6 @@
           "Ref": "sgecssampleec2"
         },
         "SourceSecurityGroupOwnerId": "982947632035"
-      }
-    },
-    "ingress18": {
-      "Type": "AWS::EC2::SecurityGroupIngress",
-      "Properties": {
-        "GroupId": {
-          "Ref": "sgecssampleloadbalancer"
-        },
-        "IpProtocol": "tcp",
-        "FromPort": "80",
-        "ToPort": "80",
-        "CidrIp": "0.0.0.0/0"
-      }
-    },
-    "ingress19": {
-      "Type": "AWS::EC2::SecurityGroupIngress",
-      "Properties": {
-        "GroupId": {
-          "Ref": "sgecssampleloadbalancer"
-        },
-        "IpProtocol": "tcp",
-        "FromPort": "443",
-        "ToPort": "443",
-        "CidrIp": "0.0.0.0/0"
       }
     },
     "ingress20": {
@@ -667,31 +597,11 @@
         "CidrIp": "0.0.0.0/0"
       }
     },
-    "egress7": {
-      "Type": "AWS::EC2::SecurityGroupEgress",
-      "Properties": {
-        "GroupId": {
-          "Ref": "sgecssampleredis"
-        },
-        "IpProtocol": "-1",
-        "CidrIp": "0.0.0.0/0"
-      }
-    },
     "egress8": {
       "Type": "AWS::EC2::SecurityGroupEgress",
       "Properties": {
         "GroupId": {
           "Ref": "sgecssamplemysql"
-        },
-        "IpProtocol": "-1",
-        "CidrIp": "0.0.0.0/0"
-      }
-    },
-    "egress9": {
-      "Type": "AWS::EC2::SecurityGroupEgress",
-      "Properties": {
-        "GroupId": {
-          "Ref": "sgecssampleloadbalancer"
         },
         "IpProtocol": "-1",
         "CidrIp": "0.0.0.0/0"
@@ -718,11 +628,6 @@
     "IgwEcsSampleId": {
       "Value": {
         "Ref": "IgwEcsSample"
-      }
-    },
-    "NatIP": {
-      "Value": {
-        "Ref": "EipNat"
       }
     },
     "InstanceAppApiId": {
