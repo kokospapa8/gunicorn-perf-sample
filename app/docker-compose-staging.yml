@@ -22,7 +22,7 @@ services:
       - DB_PASSWORD
       - DB_HOST
       - WORKER_COUNT
-      - TH_COUNT
+      - TH_COUNT=1
 
   nginx:
     image: nginx

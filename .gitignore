@@ -125,3 +125,4 @@ dmypy.json
 .pyre/
 
 .idea
+/app/config/ecs/task-definition-api-sample.json

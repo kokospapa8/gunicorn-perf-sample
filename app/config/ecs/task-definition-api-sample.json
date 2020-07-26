@@ -1,0 +1,108 @@
+{
+  "executionRoleArn": "arn:aws:iam::982947632035:role/sampleECSTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "portMappings": [
+        {
+          "hostPort": 8000,
+          "protocol": "tcp",
+          "containerPort": 8000
+        }
+      ],
+      "cpu": 0,
+      "environment": [
+        {
+          "name": "AWS_DEFAULT_REGION",
+          "value": "us-west-2"
+        },
+        {
+          "name": "DJANGO_SETTINGS_MODULE",
+          "value": "settings.prod"
+        },
+        {
+          "name": "ENV",
+          "value": "prod"
+        },
+        {
+          "name": "WORKER_COUNT",
+          "value": "1"
+        },
+        {
+          "name": "TH_COUNT",
+          "value": "1"
+        }
+      ],
+      "mountPoints": [],
+      "secrets": [
+        {
+          "valueFrom": "arn:aws:ssm:us-west-2:982947632035:parameter/gunicorn-perf/prod/DB_PASSWORD",
+          "name": "DB_PASSWORD"
+        },
+        {
+          "valueFrom": "arn:aws:ssm:us-west-2:982947632035:parameter/gunicorn-perf/prod/DB_HOST",
+          "name": "DB_HOST"
+        },
+        {
+          "valueFrom": "arn:aws:ssm:us-west-2:982947632035:parameter/gunicorn-perf/prod/SECRET_KEY",
+          "name": "SECRET_KEY"
+        }
+      ],
+
+      "memoryReservation": 512,
+      "volumesFrom": [],
+      "image": "982947632035.dkr.ecr.us-west-2.amazonaws.com/gunicorn-perftest:latest",
+      "healthCheck": {
+        "retries": 3,
+        "command": [
+          "CMD-SHELL",
+          "python manage.py check"
+        ],
+        "timeout": 5,
+        "interval": 30
+      },
+      "essential": true,
+      "links": [],
+      "dockerLabels": {
+        "name": "ecs-sample-api",
+        "env": "prod"
+      },
+      "name": "api"
+    },
+    {
+      "entryPoint": [],
+      "portMappings": [
+        {
+          "hostPort": 80,
+          "protocol": "tcp",
+          "containerPort": 80
+        }
+      ],
+      "command": [],
+      "cpu": 0,
+      "environment": [],
+      "mountPoints": [],
+      "memoryReservation": 256,
+      "volumesFrom": [],
+      "image": "982947632035.dkr.ecr.us-west-2.amazonaws.com/nginx:latest",
+      "dependsOn": [
+        {
+          "containerName": "api",
+          "condition": "HEALTHY"
+        }
+      ],
+      "essential": true,
+      "links": [],
+      "name": "nginx"
+    }
+  ],
+  "placementConstraints": [],
+  "memory": "1024",
+  "taskRoleArn": "arn:aws:iam::982947632035:role/sampleECSTaskExecutionRole",
+  "family": "ecs-sample-api",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "networkMode": "awsvpc",
+  "cpu": "512",
+  "volumes": []
+}
